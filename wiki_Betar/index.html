@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Ma Collection d'Écussons</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Lato:wght@300;400&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f0ece4;
+      --surface: #faf8f4;
+      --surface2: #f0ece4;
+      --border: #d8d2c6;
+      --text: #2a2520;
+      --text-dim: #8a8278;
+      --accent: #7a5c2e;
+      --accent-dim: #c4a97a;
+      --collected: #3a6fa8;
+      --collected-hover: #2a5a90;
+      --missing: #c8c2b6;
+      --missing-hover: #b8b2a6;
+      --ocean: #c5d8e8;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Lato', sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── LAYOUT ── */
+    #app {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 1.8rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      z-index: 10;
+    }
+
+    .header-left h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: 1.45rem;
+      letter-spacing: 0.04em;
+      color: var(--text);
+    }
+
+    .header-left h1 span {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    .stats {
+      display: flex;
+      gap: 1.8rem;
+      align-items: center;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-val {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.3rem;
+      font-weight: 400;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .stat-lbl {
+      font-size: 0.6rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .legend {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    .dot-collected { background: var(--collected); }
+    .dot-missing { background: var(--missing); border: 1px solid var(--border); }
+
+    /* ── MAP CONTAINER ── */
+    #map-container {
+      position: relative;
+      overflow: hidden;
+      background: var(--ocean);
+      background-image:
+        radial-gradient(ellipse at 30% 40%, rgba(22,30,40,0.8) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 60%, rgba(18,25,35,0.6) 0%, transparent 50%);
+    }
+
+    #map-svg {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #map-svg:active { cursor: grabbing; }
+
+    /* Country paths */
+    .country {
+      stroke: #0d0c0a;
+      stroke-width: 0.4px;
+      transition: fill 0.15s, stroke 0.15s;
+      cursor: pointer;
+    }
+
+    .country.collected {
+      fill: var(--collected);
+    }
+
+    .country.missing {
+      fill: var(--missing);
+      pointer-events: none;
+      cursor: default;
+    }
+
+    .country.collected:hover {
+      fill: var(--collected-hover);
+      stroke: var(--accent);
+      stroke-width: 1px;
+    }
+
+    .country.missing:hover {
+      fill: var(--missing-hover);
+      stroke: var(--border);
+      stroke-width: 0.8px;
+    }
+
+    /* ── TOOLTIP ── */
+    #tooltip {
+      position: absolute;
+      pointer-events: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.78rem;
+      color: var(--text);
+      display: none;
+      white-space: nowrap;
+      z-index: 50;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    #tooltip .tt-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1rem;
+      font-weight: 400;
+    }
+
+    #tooltip .tt-status {
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .tt-collected { color: var(--collected-hover); }
+    .tt-missing { color: var(--text-dim); }
+
+    /* ── ZOOM CONTROLS ── */
+    .zoom-controls {
+      position: absolute;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      z-index: 20;
+    }
+
+    .zoom-btn {
+      width: 32px;
+      height: 32px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--text-dim);
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      line-height: 1;
+    }
+
+    .zoom-btn:hover { background: var(--surface2); color: var(--accent); border-color: var(--accent-dim); }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 9, 8, 0.75);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      backdrop-filter: blur(6px);
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      max-width: 680px;
+      width: 100%;
+      max-height: 92vh;
+      overflow-y: auto;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      animation: modalIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalIn {
+      from { transform: translateY(20px) scale(0.97); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    .modal-top {
+      padding: 1.4rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .modal-country {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 1.8rem;
+      font-weight: 300;
+      letter-spacing: 0.02em;
+      line-height: 1.1;
+    }
+
+    .modal-region {
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .modal-status {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 2px;
+      margin-top: 6px;
+      display: inline-block;
+    }
+
+    .status-collected { background: rgba(74,124,89,0.2); color: var(--collected-hover); border: 1px solid rgba(74,124,89,0.3); }
+    .status-missing { background: rgba(0,0,0,0.04); color: var(--text-dim); border: 1px solid var(--border); }
+
+    .modal-close {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      width: 28px;
+      height: 28px;
+      color: var(--text-dim);
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .modal-close:hover { background: var(--surface2); color: var(--accent); border-color: var(--accent-dim); }
+
+    .modal-img-zone {
+      min-height: 420px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .modal-img-zone canvas {
+      max-width: 100%;
+      max-height: 460px;
+      pointer-events: none;
+    }
+
+    .modal-img-zone img {
+      max-width: 100%;
+      max-height: 460px;
+      object-fit: contain;
+      padding: 1.5rem;
+      pointer-events: none;
+      -webkit-user-drag: none;
+    }
+
+    .modal-img-zone.no-img {
+      background: repeating-linear-gradient(
+        45deg,
+        var(--surface2),
+        var(--surface2) 10px,
+        var(--bg) 10px,
+        var(--bg) 20px
+      );
+    }
+
+    .no-img-text {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 0.95rem;
+      color: var(--text-dim);
+      z-index: 1;
+    }
+
+    .modal-body {
+      padding: 1.2rem 1.5rem 1.5rem;
+    }
+
+    .modal-links {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .modal-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      border-radius: 3px;
+      font-family: 'Lato', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      transition: all 0.15s;
+      flex: 1;
+      justify-content: center;
+      min-width: 120px;
+    }
+
+    .btn-website {
+      background: var(--collected);
+      color: #fff;
+      border: 1px solid var(--collected);
+    }
+
+    .btn-website:hover {
+      background: var(--collected-hover);
+      border-color: var(--collected-hover);
+    }
+
+    .btn-instagram {
+      background: #fff;
+      color: #2a2520;
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+      color: #fff;
+      border: none;
+    }
+
+    .btn-instagram:hover {
+      opacity: 0.88;
+    }
+
+    .btn-disabled {
+      background: var(--surface2);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      cursor: not-allowed;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .modal-notes {
+      font-size: 0.85rem;
+      font-weight: 300;
+      color: #6a6258;
+      line-height: 1.75;
+    }
+
+    .modal-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.75rem;
+    }
+
+    .meta-row { display: flex; gap: 0.4rem; align-items: baseline; }
+    .meta-key { color: var(--text-dim); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; }
+    .meta-val { color: var(--text); }
+
+    /* ── NO ÉCUSSON PANEL ── */
+    .modal-no-collection {
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+
+    .modal-no-collection p {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 1.05rem;
+      color: var(--text-dim);
+      line-height: 1.7;
+    }
+
+    /* ── PROTECTION ── */
+    body {
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: var(--surface); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 600px) {
+      header {
+        padding: 0.7rem 1rem;
+        gap: 0.5rem;
+      }
+
+      .header-left h1 {
+        font-size: 1.1rem;
+      }
+
+      .stats {
+        gap: 1.1rem;
+      }
+
+      .stat-val { font-size: 1.1rem; }
+      .stat-lbl { font-size: 0.55rem; }
+
+      .legend {
+        font-size: 0.65rem;
+        gap: 0.7rem;
+      }
+
+      .zoom-controls {
+        bottom: 1rem;
+        right: 1rem;
+      }
+
+      .zoom-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1.3rem;
+      }
+
+      .modal {
+        max-height: 92vh;
+        border-radius: 8px 8px 0 0;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-width: 100%;
+        margin: 0;
+      }
+
+      .modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+      }
+
+      @keyframes modalIn {
+        from { transform: translateY(100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
+      .modal-top { padding: 1.2rem 1.2rem 0.8rem; }
+      .modal-body { padding: 1rem 1.2rem 2rem; }
+    }
+
+    @media (max-width: 380px) {
+      .legend { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="header-left">
+      <h1>Betar in the world</h1>
+    </div>
+
+    <div class="stats">
+    <!--
+      <div class="stat"><div class="stat-val" id="s-total">0</div><div class="stat-lbl">Total</div></div>
+      <div class="stat"><div class="stat-val" id="s-collected">0</div><div class="stat-lbl">Collectés</div></div>
+      <div class="stat"><div class="stat-val" id="s-continents">0</div><div class="stat-lbl">Continents</div></div>
+    -->
+    </div>
+
+    <div class="legend">
+    <!--
+      <div class="legend-item"><div class="legend-dot dot-collected"></div> Collecté</div>
+      <div class="legend-item"><div class="legend-dot dot-missing"></div> Non collecté</div>
+    -->
+    </div>
+
+  </header>
+
+  <div id="map-container">
+    <svg id="map-svg"></svg>
+    <div id="tooltip">
+      <div class="tt-name" id="tt-name"></div>
+      <div class="tt-status" id="tt-status"></div>
+    </div>
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick="zoomIn()">+</button>
+      <button class="zoom-btn" onclick="zoomReset()">⊙</button>
+      <button class="zoom-btn" onclick="zoomOut()">−</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="overlayClick(event)">
+  <div class="modal" id="modal">
+    <div class="modal-top">
+      <div>
+
+        <div class="modal-country" id="m-country"></div>
+      <!--
+        <div class="modal-region" id="m-region"></div>
+        <span class="modal-status" id="m-status"></span>
+      -->
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-img-zone" id="m-imgzone" oncontextmenu="return false;">
+      <canvas id="m-canvas" style="display:none" oncontextmenu="return false;"></canvas>
+      <span class="no-img-text" id="m-noimg"></span>
+    </div>
+    <div class="modal-body" id="m-body">
+      <p class="modal-notes" id="m-notes"></p>
+      <div class="modal-links" id="m-links"></div>
+    </div>
+  </div>
+</div>
+
+<!-- D3 + TopoJSON -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+
+// ════════════════════════════════════════════════
+//  TA COLLECTION D'ÉCUSSONS
+//  Clé = code ISO 3 lettres du pays (ISO Alpha-3)
+//  Exemples courants :
+//    FRA=France, DEU=Allemagne, ESP=Espagne, ITA=Italie
+//    GBR=Royaume-Uni, BEL=Belgique, CHE=Suisse, NLD=Pays-Bas
+//    PRT=Portugal, POL=Pologne, SWE=Suède, NOR=Norvège
+//    USA=États-Unis, CAN=Canada, MEX=Mexique, BRA=Brésil
+//    JPN=Japon, CHN=Chine, IND=Inde, KOR=Corée du Sud
+//    MAR=Maroc, EGY=Égypte, ZAF=Afrique du Sud, NGA=Nigeria
+//    AUS=Australie, NZL=Nouvelle-Zélande
+// ════════════════════════════════════════════════
+const collection = {
+  "CAN": { country: "Canada",         region: "Amérique", image: "img/Canada.png", notes: "", website: "", instagram: "" },
+  "USA": { country: "États-Unis",     region: "Amérique", image: "img/USA.png", notes: "", website: "https://betarus.org", instagram: "https://www.instagram.com/betarnews/" },
+  "PER": { country: "Pérou",          region: "Amérique", image: "img/Peru.png", notes: "", website: "", instagram: "" },
+  "BRA": { country: "Brésil",         region: "Amérique", image: "img/Brasil.png", notes: "", website: "https://www.betar.com.br/", instagram: "https://www.instagram.com/betarbrasil/" },
+  "ARG": { country: "Argentine",      region: "Amérique", image: "", notes: "", website: "", instagram: "" },
+  "URY": { country: "Uruguay",        region: "Amérique", image: "img/Uruguay.png", notes: "", website: "https://www.betaruruguay.com", instagram: "https://www.instagram.com/betar_uruguay/" },
+  "FRA": { country: "France",         region: "Europe",   image: "img/France.png", notes: "", website: "https://betar.fr", instagram: "https://www.instagram.com/betar.fr/" },
+  "ISR": { country: "Israël",         region: "Asie",     image: "img/Israel.png", notes: "", website: "https://betar.org.il", instagram: "" },
+  "ZAF": { country: "Afrique du Sud", region: "Afrique",  image: "img/South_Africa.png", notes: "", website: "", instagram: "https://www.instagram.com/betar_sa/" },
+  "AUS": { country: "Australie",      region: "Océanie",  image: "img/Australia.png", notes: "", website: "https://betar.org.au/", instagram: "https://www.instagram.com/betaraustralia/" },
+};
+
+// ════════════════════════════════════════════════
+
+// Stats
+/*
+const total = Object.keys(collection).length;
+const continents = new Set(Object.values(collection).map(e => e.region)).size;
+document.getElementById('s-total').textContent = total;
+document.getElementById('s-collected').textContent = total; // tous collectés
+document.getElementById('s-continents').textContent = continents;
+*/
+// ── TOUCH DETECTION ──
+const isTouchDevice = () => window.matchMedia("(pointer: coarse)").matches;
+
+// ── MAP SETUP ──
+const svg = d3.select("#map-svg");
+const container = document.getElementById('map-container');
+const g = svg.append("g");
+
+const projection = d3.geoNaturalEarth1()
+  .scale(160)
+  .translate([0, 0]);
+
+const path = d3.geoPath().projection(projection);
+
+let currentTransform = d3.zoomIdentity;
+
+const zoom = d3.zoom()
+  .scaleExtent([0.8, 12])
+  .filter(event => {
+    // Allow wheel, pinch (touch with 2 fingers), and mouse drag — but not single-finger tap (handled as click)
+    if (event.type === 'touchstart') return event.touches.length === 2;
+    if (event.type === 'touchmove') return event.touches.length === 2;
+    return !event.button;
+  })
+  .on("zoom", (event) => {
+    currentTransform = event.transform;
+    g.attr("transform", event.transform);
+  });
+
+svg.call(zoom);
+
+function centerMap() {
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  projection.translate([w / 2, h / 2]);
+  path.projection(projection);
+  g.selectAll(".country").attr("d", path);
+  svg.call(zoom.transform, d3.zoomIdentity);
+}
+
+// ── TOOLTIP ──
+const tooltip = document.getElementById('tooltip');
+
+function showTooltip(event, name, isCollected) {
+  document.getElementById('tt-name').textContent = name;
+  const st = document.getElementById('tt-status');
+  if (isCollected) {
+    st.textContent = '● Collecté';
+    st.className = 'tt-status tt-collected';
+  } else {
+    st.textContent = '○ Non collecté';
+    st.className = 'tt-status tt-missing';
+  }
+  tooltip.style.display = 'block';
+  moveTooltip(event);
+}
+
+function moveTooltip(event) {
+  const rect = container.getBoundingClientRect();
+  let x = event.clientX - rect.left + 14;
+  let y = event.clientY - rect.top - 10;
+  if (x + 180 > container.clientWidth) x -= 200;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+}
+
+function hideTooltip() {
+  tooltip.style.display = 'none';
+}
+
+// ── MODAL ──
+function openModal(iso, name) {
+  const data = collection[iso];
+  const isCollected = !!data;
+  
+  document.getElementById('m-country').textContent = isCollected ? data.country : name;
+  /*
+  document.getElementById('m-region').textContent = isCollected ? data.region : '';
+
+  const statusEl = document.getElementById('m-status');
+  if (isCollected) {
+    statusEl.textContent = 'Dans la collection';
+    statusEl.className = 'modal-status status-collected';
+  } else {
+    statusEl.textContent = 'Non collecté';
+    statusEl.className = 'modal-status status-missing';
+  }
+  */
+  const imgZone = document.getElementById('m-imgzone');
+  const canvas = document.getElementById('m-canvas');
+  const noImg = document.getElementById('m-noimg');
+
+  if (isCollected && data.image) {
+    imgZone.classList.remove('no-img');
+    noImg.style.display = 'none';
+    canvas.style.display = 'block';
+
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => {
+      const maxW = 640, maxH = 460;
+      let w = image.naturalWidth, h = image.naturalHeight;
+      const ratio = Math.min(maxW / w, maxH / h, 1);
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
+      canvas.width = w;
+      canvas.height = h;
+
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(image, 0, 0, w, h);
+
+      // Watermark en diagonale, répété
+      ctx.save();
+      ctx.globalAlpha = 0.18;
+      ctx.fillStyle = '#ffffff';
+      const fontSize = Math.max(12, Math.round(w / 10));
+      ctx.font = `bold ${fontSize}px Lato, sans-serif`;
+      ctx.rotate(-Math.PI / 6);
+
+      const text = 'wiki-Betar';
+      const metrics = ctx.measureText(text);
+      const tw = metrics.width + 20;
+      const th = fontSize + 16;
+
+      // Couvrir toute la surface même après rotation
+      for (let y = -h; y < w + h; y += th * 2.5) {
+        for (let x = -w; x < w + h; x += tw * 1.6) {
+          ctx.fillText(text, x, y);
+        }
+      }
+      ctx.restore();
+    };
+    image.onerror = () => {
+      imgZone.classList.add('no-img');
+      canvas.style.display = 'none';
+      noImg.textContent = 'Image introuvable…';
+      noImg.style.display = 'block';
+    };
+    image.src = data.image;
+
+  } else if (isCollected) {
+    imgZone.classList.add('no-img');
+    canvas.style.display = 'none';
+    noImg.textContent = 'Photo de l\'écusson à venir…';
+    noImg.style.display = 'block';
+  } else {
+    imgZone.classList.add('no-img');
+    canvas.style.display = 'none';
+    noImg.textContent = 'Pas encore dans la collection';
+    noImg.style.display = 'block';
+  }
+
+  const body = document.getElementById('m-body');
+  if (isCollected) {
+    body.style.display = 'block';
+    document.getElementById('m-notes').textContent = data.notes || '';
+
+    const links = [];
+
+    if (data.website) {
+      links.push(`<a class="modal-btn btn-website" href="${data.website}" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Site web
+      </a>`);
+    }
+
+    const igUrl = data.instagram
+      ? (data.instagram.startsWith('http') ? data.instagram : `https://instagram.com/${data.instagram.replace('@','')}`)
+      : null;
+
+    if (igUrl) {
+      links.push(`<a class="modal-btn btn-instagram" href="${igUrl}" target="_blank" rel="noopener">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+        Instagram
+      </a>`);
+    }
+
+    document.getElementById('m-links').innerHTML = links.join('');
+  } else {
+    body.style.display = 'none';
+  }
+
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function overlayClick(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+}
+
+// ── PROTECTIONS ──
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('dragstart', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  // Bloquer PrintScreen, F12, Ctrl+S, Ctrl+U, Ctrl+Shift+I/J/C
+  const blocked = [
+    e.key === 'PrintScreen',
+    e.key === 'F12',
+    e.ctrlKey && e.key === 's',
+    e.ctrlKey && e.key === 'u',
+    e.ctrlKey && e.shiftKey && ['i','j','c'].includes(e.key.toLowerCase()),
+    e.metaKey && e.shiftKey && ['4','3'].includes(e.key), // Mac screenshot
+  ];
+  if (blocked.some(Boolean)) e.preventDefault();
+
+  if (e.key === 'Escape') closeModal();
+});
+
+
+// ── ZOOM BUTTONS ──
+function zoomIn() { svg.transition().duration(300).call(zoom.scaleBy, 1.6); }
+function zoomOut() { svg.transition().duration(300).call(zoom.scaleBy, 0.625); }
+function zoomReset() { svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity.translate(container.clientWidth/2, container.clientHeight/2).scale(1).translate(-container.clientWidth/2, -container.clientHeight/2)); centerMap(); }
+
+// ── LOAD MAP ──
+d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json").then(world => {
+
+  // Map ISO numeric → alpha3 using a lookup
+  const isoNum2Alpha3 = {
+    4:"AFG",8:"ALB",12:"DZA",24:"AGO",32:"ARG",36:"AUS",40:"AUT",50:"BGD",56:"BEL",64:"BTN",68:"BOL",76:"BRA",100:"BGR",116:"KHM",120:"CMR",124:"CAN",152:"CHL",156:"CHN",170:"COL",178:"COG",180:"COD",191:"HRV",192:"CUB",203:"CZE",204:"BEN",208:"DNK",218:"ECU",818:"EGY",222:"SLV",231:"ETH",246:"FIN",250:"FRA",266:"GAB",276:"DEU",288:"GHA",300:"GRC",320:"GTM",324:"GIN",332:"HTI",340:"HND",348:"HUN",356:"IND",360:"IDN",364:"IRN",368:"IRQ",372:"IRL",376:"ISR",380:"ITA",388:"JAM",392:"JPN",400:"JOR",398:"KAZ",404:"KEN",410:"KOR",408:"PRK",414:"KWT",418:"LAO",422:"LBN",430:"LBR",434:"LBY",144:"LKA",484:"MEX",504:"MAR",508:"MOZ",516:"NAM",524:"NPL",528:"NLD",558:"NIC",562:"NER",566:"NGA",578:"NOR",586:"PAK",591:"PAN",600:"PRY",604:"PER",608:"PHL",616:"POL",620:"PRT",630:"PRI",642:"ROU",643:"RUS",646:"RWA",682:"SAU",686:"SEN",706:"SOM",710:"ZAF",724:"ESP",729:"SDN",752:"SWE",756:"CHE",760:"SYR",158:"TWN",762:"TJK",764:"THA",768:"TGO",792:"TUR",800:"UGA",804:"UKR",784:"ARE",826:"GBR",840:"USA",858:"URY",860:"UZB",862:"VEN",704:"VNM",887:"YEM",894:"ZMB",716:"ZWE",466:"MLI",478:"MRT",454:"MWI",450:"MDG",233:"EST",428:"LVA",440:"LTU",703:"SVK",705:"SVN",31:"AZE",112:"BLR",268:"GEO",51:"ARM",417:"KGZ",795:"TKM",496:"MNG",398:"KAZ",792:"TUR",682:"SAU",760:"SYR"
+  };
+
+  const countries = topojson.feature(world, world.objects.countries);
+
+  g.selectAll(".country")
+    .data(countries.features)
+    .enter()
+    .append("path")
+    .attr("class", d => {
+      const iso3 = isoNum2Alpha3[+d.id];
+      return "country " + (collection[iso3] ? "collected" : "missing");
+    })
+    .attr("d", path)
+    .on("mouseover", function(event, d) {
+      if (isTouchDevice()) return;
+      const iso3 = isoNum2Alpha3[+d.id];
+      const isCollected = !!collection[iso3];
+      const name = isCollected ? collection[iso3].country : (d.properties?.name || iso3 || "Pays inconnu");
+      showTooltip(event, name, isCollected);
+    })
+    .on("mousemove", function(event) {
+      if (isTouchDevice()) return;
+      moveTooltip(event);
+    })
+    .on("mouseout", function() {
+      if (isTouchDevice()) return;
+      hideTooltip();
+    })
+    .on("click", function(event, d) {
+      event.stopPropagation();
+      hideTooltip();
+      const iso3 = isoNum2Alpha3[+d.id];
+      const name = (collection[iso3] && collection[iso3].country) || d.properties?.name || "Pays inconnu";
+      openModal(iso3, name);
+    });
+
+  // Draw graticule (lines)
+  g.insert("path", ".country")
+    .datum(d3.geoGraticule()())
+    .attr("d", path)
+    .attr("fill", "none")
+    .attr("stroke", "rgba(0,0,0,0.07)")
+    .attr("stroke-width", "0.5px");
+
+  centerMap();
+  window.addEventListener('resize', centerMap);
+
+}).catch(err => {
+  console.error("Erreur chargement carte:", err);
+  document.getElementById('map-container').innerHTML =
+    '<p style="color:#7a7268;text-align:center;padding:4rem;font-family:Cormorant Garamond,serif;font-style:italic;">Impossible de charger la carte. Vérifie ta connexion internet.</p>';
+});
+
+</script>
+</body>
+</html>
