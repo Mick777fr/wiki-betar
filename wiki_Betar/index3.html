@@ -409,16 +409,6 @@
       opacity: 0.88;
     }
 
-    .btn-facebook {
-      background: #1877F2;
-      color: #fff;
-      border: none;
-    }
-
-    .btn-facebook:hover {
-      background: #1465d0;
-    }
-
     .btn-disabled {
       background: var(--surface2);
       color: var(--text-dim);
@@ -617,16 +607,16 @@
 //    AUS=Australie, NZL=Nouvelle-Zélande
 // ════════════════════════════════════════════════
 const collection = {
-  "CAN": { country: "Canada",         region: "Amérique", image: "img/Canada.png", notes: "", website: "", instagram: "", facebook: "" },
-  "USA": { country: "États-Unis",     region: "Amérique", image: "img/USA.png", notes: "", website: "https://betarus.org", instagram: "https://www.instagram.com/betarnews/", facebook: "https://www.facebook.com/BetarAmerica/" },
-  "PER": { country: "Pérou",          region: "Amérique", image: "img/Peru.png", notes: "", website: "", instagram: "", facebook: "" },
-  "BRA": { country: "Brésil",         region: "Amérique", image: "img/Brasil.png", notes: "", website: "https://www.betar.com.br/", instagram: "https://www.instagram.com/betarbrasil/", facebook: "https://www.facebook.com/brasilbetar/" },
-  "ARG": { country: "Argentine",      region: "Amérique", image: "", notes: "", website: "", instagram: "https://www.instagram.com/betarargentina/", facebook: "https://www.facebook.com/BETARargentina/" },
-  "URY": { country: "Uruguay",        region: "Amérique", image: "img/Uruguay.png", notes: "", website: "https://www.betaruruguay.com", instagram: "https://www.instagram.com/betar_uruguay/", facebook: "https://www.facebook.com/groups/6358182484/" },
-  "FRA": { country: "France",         region: "Europe",   image: "img/France.png", notes: "", website: "https://betar.fr", instagram: "https://www.instagram.com/betar.fr/", facebook: "https://www.facebook.com/BetarOfficielSecours/?locale=fr_FR" },
-  "ISR": { country: "Israël",         region: "Asie",     image: "img/Israel.png", notes: "", website: "https://betar.org.il", instagram: "", facebook: "https://www.facebook.com/World.Betar/" },
-  "ZAF": { country: "Afrique du Sud", region: "Afrique",  image: "img/South_Africa.png", notes: "", website: "", instagram: "https://www.instagram.com/betar_sa/", facebook: "" },
-  "AUS": { country: "Australie",      region: "Océanie",  image: "img/Australia.png", notes: "", website: "https://betar.org.au/", instagram: "https://www.instagram.com/betaraustralia/", facebook: "" },
+  "CAN": { country: "Canada",         region: "Amérique", image: "img/Canada.png", notes: "", website: "", instagram: "" },
+  "USA": { country: "États-Unis",     region: "Amérique", image: "img/USA.png", notes: "", website: "https://betarus.org", instagram: "https://www.instagram.com/betarnews/" },
+  "PER": { country: "Pérou",          region: "Amérique", image: "img/Peru.png", notes: "", website: "", instagram: "" },
+  "BRA": { country: "Brésil",         region: "Amérique", image: "img/Brasil.png", notes: "", website: "https://www.betar.com.br/", instagram: "https://www.instagram.com/betarbrasil/" },
+  "ARG": { country: "Argentine",      region: "Amérique", image: "", notes: "", website: "", instagram: "" },
+  "URY": { country: "Uruguay",        region: "Amérique", image: "img/Uruguay.png", notes: "", website: "https://www.betaruruguay.com", instagram: "https://www.instagram.com/betar_uruguay/" },
+  "FRA": { country: "France",         region: "Europe",   image: "img/France.png", notes: "", website: "https://betar.fr", instagram: "https://www.instagram.com/betar.fr/" },
+  "ISR": { country: "Israël",         region: "Asie",     image: "img/Israel.png", notes: "", website: "https://betar.org.il", instagram: "" },
+  "ZAF": { country: "Afrique du Sud", region: "Afrique",  image: "img/South_Africa.png", notes: "", website: "", instagram: "https://www.instagram.com/betar_sa/" },
+  "AUS": { country: "Australie",      region: "Océanie",  image: "img/Australia.png", notes: "", website: "https://betar.org.au/", instagram: "https://www.instagram.com/betaraustralia/" },
 };
 
 // ════════════════════════════════════════════════
@@ -813,17 +803,6 @@ function openModal(iso, name) {
       links.push(`<a class="modal-btn btn-instagram" href="${igUrl}" target="_blank" rel="noopener">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
         Instagram
-      </a>`);
-    }
-
-    const fbUrl = data.facebook
-      ? (data.facebook.startsWith('http') ? data.facebook : `https://facebook.com/${data.facebook}`)
-      : null;
-
-    if (fbUrl) {
-      links.push(`<a class="modal-btn btn-facebook" href="${fbUrl}" target="_blank" rel="noopener">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-        Facebook
       </a>`);
     }
 
